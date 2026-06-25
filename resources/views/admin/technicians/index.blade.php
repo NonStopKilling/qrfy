@@ -9,10 +9,22 @@
             <div>
                 <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Admin</p>
                 <h2 class="title-font mt-1 text-3xl font-bold text-slate-900">Administración de técnicos</h2>
-                <p class="mt-2 text-slate-500">CRUD de usuarios de personal técnico.</p>
+                <p class="mt-2 text-slate-500">Usuarios técnicos registrados en la plataforma.</p>
             </div>
-            <button class="rounded-2xl bg-green-600 px-5 py-3 font-semibold text-white hover:bg-green-700">+ Crear nuevo técnico</button>
+            <a href="{{ route('admin.technicians.create') }}" class="rounded-2xl bg-green-600 px-5 py-3 font-semibold text-white hover:bg-green-700">+ Crear nuevo técnico</a>
         </div>
+
+        @if (session('success'))
+            <div class="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {{ $errors->first() }}
+            </div>
+        @endif
 
         <div class="mt-5 overflow-x-auto">
             <table class="w-full min-w-[640px] text-sm">
@@ -27,18 +39,26 @@
                 <tbody>
                     @foreach($technicians as $technician)
                         <tr class="border-b border-slate-100 hover:bg-slate-50/80">
-                            <td class="py-4 pr-3 font-semibold text-slate-800">{{ $technician['name'] }}</td>
-                            <td class="py-4 pr-3 text-slate-600">{{ $technician['email'] }}</td>
-                            <td class="py-4 pr-3"><span class="rounded-full border px-3 py-1 text-xs font-semibold {{ $technician['status'] === 'Activo' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700' }}">{{ $technician['status'] }}</span></td>
+                            <td class="py-4 pr-3 font-semibold text-slate-800">{{ $technician->name }}</td>
+                            <td class="py-4 pr-3 text-slate-600">{{ $technician->email }}</td>
+                            <td class="py-4 pr-3">
+                                <span class="rounded-full border px-3 py-1 text-xs font-semibold {{ $technician->status === 'activo' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700' }}">
+                                    {{ ucfirst($technician->status) }}
+                                </span>
+                            </td>
                             <td class="py-4 pr-3">
                                 <div class="flex gap-2">
-                                    <button class="rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700">Ver</button>
-                                    <button class="rounded-lg bg-amber-500 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-600">Editar</button>
-                                    <button class="rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700">Borrar</button>
+                                    <a href="{{ route('admin.technicians.edit', $technician) }}" class="rounded-lg bg-amber-500 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-600">Editar</a>
+                                    <a href="{{ route('admin.technicians.delete', $technician) }}" class="rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700">Borrar</a>
                                 </div>
                             </td>
                         </tr>
                     @endforeach
+                    @if($technicians->isEmpty())
+                        <tr>
+                            <td colspan="4" class="py-10 text-center text-slate-500">Aún no hay técnicos registrados.</td>
+                        </tr>
+                    @endif
                 </tbody>
             </table>
         </div>

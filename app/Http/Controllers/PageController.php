@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Asset;
+use App\Models\User;
 use App\Services\QrCodeSvgGenerator;
 use App\Services\QrLabelPngGenerator;
 use Illuminate\Http\Request;
@@ -16,14 +17,6 @@ class PageController extends Controller
         private readonly QrCodeSvgGenerator $qrGenerator,
         private readonly QrLabelPngGenerator $labelGenerator,
     ) {}
-
-    protected function technicians(): array
-    {
-        return [
-            ['name' => 'Andrea Rojas', 'email' => 'andrea@qrfy.cl', 'status' => 'Activo'],
-            ['name' => 'Mario Cardenas', 'email' => 'mario@qrfy.cl', 'status' => 'Suspendido'],
-        ];
-    }
 
     public function login()
     {
@@ -43,7 +36,7 @@ class PageController extends Controller
         ]);
         $remember = (bool) ($credentials['remember'] ?? false);
 
-        if (! Auth::attempt(['email' => $credentials['email'], 'password' => $credentials['password']], $remember)) {
+        if (! Auth::attempt(['email' => $credentials['email'], 'password' => $credentials['password'], 'status' => 'activo'], $remember)) {
             return back()->withErrors(['email' => 'Credenciales invalidas.'])->onlyInput('email');
         }
 
@@ -237,7 +230,90 @@ class PageController extends Controller
 
     public function techniciansIndex()
     {
-        return view('admin.technicians.index', ['role' => 'admin', 'technicians' => $this->technicians()]);
+        return view('admin.technicians.index', [
+            'role' => 'admin',
+            'technicians' => User::where('role', 'tecnico')->latest()->get(),
+        ]);
+    }
+
+    public function technicianCreate()
+    {
+        return view('admin.technicians.create', ['role' => 'admin']);
+    }
+
+    public function technicianStore(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'min:3', 'max:191'],
+            'email' => ['required', 'email', 'max:191', Rule::unique('users')],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'status' => ['required', Rule::in(['activo', 'suspendido'])],
+        ]);
+
+        User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => $validated['password'],
+            'role' => 'tecnico',
+            'status' => $validated['status'],
+        ]);
+
+        return redirect()
+            ->route('admin.technicians.index')
+            ->with('success', 'Técnico creado correctamente.');
+    }
+
+    public function technicianEdit(User $user)
+    {
+        abort_unless($user->role === 'tecnico', 404);
+
+        return view('admin.technicians.edit', ['role' => 'admin', 'technician' => $user]);
+    }
+
+    public function technicianUpdate(Request $request, User $user)
+    {
+        abort_unless($user->role === 'tecnico', 404);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'min:3', 'max:191'],
+            'email' => ['required', 'email', 'max:191', Rule::unique('users')->ignore($user)],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'status' => ['required', Rule::in(['activo', 'suspendido'])],
+        ]);
+
+        $user->fill([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'status' => $validated['status'],
+        ]);
+
+        if (! empty($validated['password'])) {
+            $user->password = $validated['password'];
+        }
+
+        $user->save();
+
+        return redirect()
+            ->route('admin.technicians.index')
+            ->with('success', 'Técnico actualizado correctamente.');
+    }
+
+    public function technicianDelete(User $user)
+    {
+        abort_unless($user->role === 'tecnico', 404);
+
+        return view('admin.technicians.delete', ['role' => 'admin', 'technician' => $user]);
+    }
+
+    public function technicianDestroy(User $user)
+    {
+        abort_unless($user->role === 'tecnico', 404);
+
+        $user->delete();
+
+        return redirect()
+            ->route('admin.technicians.index')
+            ->with('success', 'Técnico eliminado correctamente.');
     }
 
     private function findAsset(string $input): ?Asset

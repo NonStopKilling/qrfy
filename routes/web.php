@@ -27,6 +27,12 @@ Route::delete('/panel/activos/{asset}', [PageController::class, 'assetDestroy'])
 Route::get('/panel/activos/{asset}/mantenimiento', [PageController::class, 'maintenanceShow'])->name('dashboard.maintenance.show');
 Route::post('/panel/activos/{asset}/mantenimientos', [PageController::class, 'maintenanceStore'])->name('dashboard.maintenance.store');
 Route::get('/administracion/tecnicos', [PageController::class, 'techniciansIndex'])->name('admin.technicians.index');
+Route::get('/administracion/tecnicos/crear', [PageController::class, 'technicianCreate'])->name('admin.technicians.create');
+Route::post('/administracion/tecnicos', [PageController::class, 'technicianStore'])->name('admin.technicians.store');
+Route::get('/administracion/tecnicos/{user}/editar', [PageController::class, 'technicianEdit'])->name('admin.technicians.edit');
+Route::put('/administracion/tecnicos/{user}', [PageController::class, 'technicianUpdate'])->name('admin.technicians.update');
+Route::get('/administracion/tecnicos/{user}/eliminar', [PageController::class, 'technicianDelete'])->name('admin.technicians.delete');
+Route::delete('/administracion/tecnicos/{user}', [PageController::class, 'technicianDestroy'])->name('admin.technicians.destroy');
 
 Route::redirect('/login', '/iniciar-sesion');
 Route::redirect('/forgot-password', '/recuperar-clave');
@@ -38,3 +44,4 @@ Route::get('/dashboard/assets/{asset}/delete', fn (string $asset) => redirect('/
 Route::get('/dashboard/assets/{asset}', fn (string $asset) => redirect('/panel/activos/'.$asset));
 Route::redirect('/dashboard/maintenance', '/panel/activos');
 Route::redirect('/admin/technicians', '/administracion/tecnicos');
+Route::redirect('/admin/technicians/create', '/administracion/tecnicos/crear');
