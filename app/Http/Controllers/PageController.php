@@ -7,9 +7,13 @@ use App\Models\User;
 use App\Services\QrCodeSvgGenerator;
 use App\Services\QrLabelPngGenerator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use RuntimeException;
+use Throwable;
 
 class PageController extends Controller
 {
@@ -36,7 +40,16 @@ class PageController extends Controller
         ]);
         $remember = (bool) ($credentials['remember'] ?? false);
 
-        if (! Auth::attempt(['email' => $credentials['email'], 'password' => $credentials['password'], 'status' => 'activo'], $remember)) {
+        try {
+            if (! Auth::attempt(['email' => $credentials['email'], 'password' => $credentials['password'], 'status' => 'activo'], $remember)) {
+                return back()->withErrors(['email' => 'Credenciales invalidas.'])->onlyInput('email');
+            }
+        } catch (RuntimeException $exception) {
+            Log::warning('Intento de login con hash de password invalido.', [
+                'email' => $credentials['email'],
+                'error' => $exception->getMessage(),
+            ]);
+
             return back()->withErrors(['email' => 'Credenciales invalidas.'])->onlyInput('email');
         }
 
@@ -72,7 +85,7 @@ class PageController extends Controller
     {
         $asset = Asset::where('public_token', $token)
             ->with(['maintenances' => fn ($query) => $query
-                ->select(['id', 'asset_id', 'performed_at', 'description'])
+                ->select(['id', 'asset_id', 'performed_at', 'description', 'before_photo_path', 'after_photo_path', 'maintenance_pdf_path', 'digital_signature'])
                 ->latest('performed_at')])
             ->first();
         if (! $asset) {
@@ -92,17 +105,87 @@ class PageController extends Controller
             return response()->view('public.not-found', [], 404);
         }
 
-        $png = $this->labelGenerator->generate(
-            $asset,
-            $this->publicQrUrl($asset),
-            $this->canonicalUrl(route('qr.consult', absolute: false)),
-        );
+        try {
+            $png = $this->labelGenerator->generate(
+                $asset,
+                $this->publicQrUrl($asset),
+                $this->canonicalUrl(route('qr.consult', absolute: false)),
+            );
 
-        return response($png, 200, [
-            'Content-Type' => 'image/png',
-            'Content-Disposition' => 'attachment; filename="etiqueta-'.strtolower($asset->qr_code).'.png"',
-            'Content-Length' => (string) strlen($png),
-        ]);
+            return response($png, 200, [
+                'Content-Type' => 'image/png',
+                'Content-Disposition' => 'attachment; filename="etiqueta-'.strtolower($asset->qr_code).'.png"',
+                'Content-Length' => (string) strlen($png),
+            ]);
+        } catch (Throwable $exception) {
+            Log::warning('Fallo generación PNG de etiqueta QR, se entrega SVG de respaldo.', [
+                'asset_id' => $asset->id,
+                'qr_code' => $asset->qr_code,
+                'error' => $exception->getMessage(),
+            ]);
+
+            $svg = $this->assetQr($asset, 8);
+
+            return response($svg, 200, [
+                'Content-Type' => 'image/svg+xml; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="etiqueta-'.strtolower($asset->qr_code).'.svg"',
+                'Content-Length' => (string) strlen($svg),
+            ]);
+        }
+    }
+
+    public function qrManualDownload(string $token)
+    {
+        $asset = Asset::where('public_token', $token)->first();
+        if (! $asset || ! $asset->manual_pdf_path) {
+            return response()->view('public.not-found', [], 404);
+        }
+
+        return $this->downloadPublicDiskFile(
+            $asset->manual_pdf_path,
+            'manual-'.strtolower($asset->qr_code).'.pdf',
+            'application/pdf',
+        );
+    }
+
+    public function qrMaintenanceFileDownload(string $token, int $maintenance, string $type)
+    {
+        $asset = Asset::where('public_token', $token)->first();
+        if (! $asset) {
+            return response()->view('public.not-found', [], 404);
+        }
+
+        $record = $asset->maintenances()
+            ->select(['id', 'before_photo_path', 'after_photo_path', 'maintenance_pdf_path'])
+            ->find($maintenance);
+        if (! $record) {
+            return response()->view('public.not-found', [], 404);
+        }
+
+        $mapping = [
+            'before' => [
+                'path' => $record->before_photo_path,
+                'name' => 'foto-antes-'.$record->id.'-'.strtolower($asset->qr_code),
+                'mime' => null,
+            ],
+            'after' => [
+                'path' => $record->after_photo_path,
+                'name' => 'foto-despues-'.$record->id.'-'.strtolower($asset->qr_code),
+                'mime' => null,
+            ],
+            'pdf' => [
+                'path' => $record->maintenance_pdf_path,
+                'name' => 'mantenimiento-'.$record->id.'-'.strtolower($asset->qr_code).'.pdf',
+                'mime' => 'application/pdf',
+            ],
+        ];
+
+        $file = $mapping[$type] ?? null;
+        if (! $file || ! is_string($file['path']) || $file['path'] === '') {
+            return response()->view('public.not-found', [], 404);
+        }
+
+        return $this->downloadPublicDiskFile($file['path'], $file['name'], $file['mime']);
     }
 
     public function notFound()
@@ -208,6 +291,7 @@ class PageController extends Controller
             'description' => ['required', 'string', 'min:12', 'max:5000'],
             'before_photo' => ['nullable', 'image', 'max:5120'],
             'after_photo' => ['nullable', 'image', 'max:5120'],
+            'maintenance_pdf' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
             'digital_signature' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -217,7 +301,10 @@ class PageController extends Controller
         if ($request->hasFile('after_photo')) {
             $validated['after_photo_path'] = $request->file('after_photo')->store('mantenimientos/despues', 'public');
         }
-        unset($validated['before_photo'], $validated['after_photo']);
+        if ($request->hasFile('maintenance_pdf')) {
+            $validated['maintenance_pdf_path'] = $request->file('maintenance_pdf')->store('mantenimientos/pdfs', 'public');
+        }
+        unset($validated['before_photo'], $validated['after_photo'], $validated['maintenance_pdf']);
         $validated['user_id'] = Auth::id();
 
         $asset->maintenances()->create($validated);
@@ -362,5 +449,18 @@ class PageController extends Controller
     private function canonicalUrl(string $path): string
     {
         return rtrim((string) config('app.url'), '/').'/'.ltrim($path, '/');
+    }
+
+    private function downloadPublicDiskFile(string $storagePath, string $downloadName, ?string $mimeType = null)
+    {
+        $disk = Storage::disk('public');
+        if (! $disk->exists($storagePath)) {
+            return response()->view('public.not-found', [], 404);
+        }
+
+        $absolutePath = $disk->path($storagePath);
+        $filename = str_contains($downloadName, '.') ? $downloadName : basename($storagePath);
+
+        return response()->download($absolutePath, $filename, $mimeType ? ['Content-Type' => $mimeType] : []);
     }
 }

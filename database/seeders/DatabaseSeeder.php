@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -19,16 +20,16 @@ class DatabaseSeeder extends Seeder
             'email' => 'admin@qrfy.local',
         ], [
             'name' => 'Administrador QRFY',
-            'password' => 'Admin1234!',
+            'password' => Hash::make('Admin1234!'),
             'role' => 'admin',
             'status' => 'activo',
         ]);
 
         User::updateOrCreate([
-            'email' => 'tecnico1@qrfy.local',
+            'email' => 'contacto@gfyservicios.cl',
         ], [
             'name' => 'Tecnico Base 1',
-            'password' => 'Tecnico1234!',
+            'password' => Hash::make('Tecnico1234!'),
             'role' => 'tecnico',
             'status' => 'activo',
         ]);
@@ -37,7 +38,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'tecnico2@qrfy.local',
         ], [
             'name' => 'Tecnico Base 2',
-            'password' => 'Tecnico1234!',
+            'password' => Hash::make('Tecnico1234!'),
             'role' => 'tecnico',
             'status' => 'activo',
         ]);

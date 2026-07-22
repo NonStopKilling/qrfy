@@ -37,8 +37,21 @@
                     <p class="text-sm font-semibold text-slate-900">Historial resumido</p>
                     @forelse($asset->maintenances as $maintenance)
                         <div class="mt-3 border-t border-slate-100 pt-3">
-                            <p class="text-xs font-semibold text-slate-500">{{ optional($maintenance->performed_at)->format('d-m-Y H:i') ?? 'Sin fecha' }}</p>
+                            <p class="text-xs font-semibold text-slate-500">{{ optional($maintenance->performed_at)?->timezone(config('app.timezone'))->format('d-m-Y H:i') ?? 'Sin fecha' }} CL</p>
                             <p class="mt-1 text-sm text-slate-700">{{ $maintenance->description }}</p>
+                            @if($maintenance->before_photo_path || $maintenance->after_photo_path || $maintenance->maintenance_pdf_path)
+                                <div class="mt-3 flex flex-wrap gap-2">
+                                    @if($maintenance->before_photo_path)
+                                        <a href="{{ route('qr.maintenance.download', ['token' => $asset->public_token, 'maintenance' => $maintenance->id, 'type' => 'before']) }}" class="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Descargar foto antes</a>
+                                    @endif
+                                    @if($maintenance->after_photo_path)
+                                        <a href="{{ route('qr.maintenance.download', ['token' => $asset->public_token, 'maintenance' => $maintenance->id, 'type' => 'after']) }}" class="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Descargar foto después</a>
+                                    @endif
+                                    @if($maintenance->maintenance_pdf_path)
+                                        <a href="{{ route('qr.maintenance.download', ['token' => $asset->public_token, 'maintenance' => $maintenance->id, 'type' => 'pdf']) }}" class="rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">Descargar PDF de mantención</a>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                     @empty
                         <p class="mt-2 text-sm text-slate-500">Este activo aún no tiene mantenimientos registrados.</p>
@@ -47,6 +60,9 @@
                 <div class="flex flex-wrap gap-3">
                     <a href="{{ route('qr.consult') }}" class="rounded-2xl bg-[var(--corp-blue)] px-5 py-3 font-semibold text-white hover:brightness-90">Consultar QR</a>
                     <a href="{{ route('login') }}" class="rounded-2xl border border-slate-300 px-5 py-3 font-semibold text-slate-700 hover:bg-slate-100">Acceso interno</a>
+                    @if($asset->manual_pdf_path)
+                        <a href="{{ route('qr.manual.download', $asset->public_token) }}" class="rounded-2xl border border-slate-300 px-5 py-3 font-semibold text-slate-700 hover:bg-slate-100">Descargar manual PDF</a>
+                    @endif
                     <a href="{{ route('qr.download', $asset->public_token) }}" class="rounded-2xl bg-green-600 px-5 py-3 font-semibold text-white hover:bg-green-700">Descargar etiqueta QR</a>
                 </div>
             </div>

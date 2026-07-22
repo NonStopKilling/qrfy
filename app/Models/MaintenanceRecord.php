@@ -17,6 +17,7 @@ class MaintenanceRecord extends Model
         'description',
         'before_photo_path',
         'after_photo_path',
+        'maintenance_pdf_path',
         'digital_signature',
     ];
 

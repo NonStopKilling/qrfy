@@ -13,6 +13,10 @@ Route::get('/recuperar-clave', [PageController::class, 'forgotPassword'])->name(
 Route::get('/consulta/qr', [PageController::class, 'qrConsult'])->name('qr.consult');
 Route::redirect('/qr', '/consulta/qr');
 Route::get('/qr/{token}/descargar', [PageController::class, 'qrDownload'])->name('qr.download');
+Route::get('/qr/{token}/manual/descargar', [PageController::class, 'qrManualDownload'])->name('qr.manual.download');
+Route::get('/qr/{token}/mantenimiento/{maintenance}/descargar/{type}', [PageController::class, 'qrMaintenanceFileDownload'])
+	->whereIn('type', ['before', 'after', 'pdf'])
+	->name('qr.maintenance.download');
 Route::get('/qr/{token}', [PageController::class, 'qrPublic'])->name('qr.public');
 Route::get('/404', [PageController::class, 'notFound'])->name('not-found');
 

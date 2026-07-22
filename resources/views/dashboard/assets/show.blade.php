@@ -27,6 +27,9 @@
             <a href="{{ route('dashboard.assets.index', ['role' => $role]) }}" class="rounded-2xl bg-slate-600 px-5 py-3 font-semibold text-white hover:bg-slate-700">Volver</a>
             <a href="{{ route('dashboard.assets.edit', ['asset' => $asset, 'role' => $role]) }}" class="rounded-2xl bg-amber-500 px-5 py-3 font-semibold text-white hover:bg-amber-600">Editar</a>
             <a href="{{ route('qr.public', $asset->public_token) }}" target="_blank" class="rounded-2xl border border-slate-300 px-5 py-3 font-semibold text-slate-700 hover:bg-slate-100">Abrir ficha pública</a>
+            @if($asset->manual_pdf_path)
+                <a href="{{ route('qr.manual.download', $asset->public_token) }}" class="rounded-2xl border border-slate-300 px-5 py-3 font-semibold text-slate-700 hover:bg-slate-100">Descargar manual PDF</a>
+            @endif
             <a href="{{ route('qr.download', $asset->public_token) }}" class="rounded-2xl bg-green-600 px-5 py-3 font-semibold text-white hover:bg-green-700">Descargar etiqueta QR</a>
             <a href="{{ route('dashboard.maintenance.show', ['asset' => $asset, 'role' => $role]) }}" class="rounded-2xl bg-[var(--corp-blue)] px-5 py-3 font-semibold text-white hover:brightness-90">Hoja de mantenimiento</a>
         </div>

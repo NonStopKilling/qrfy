@@ -164,7 +164,7 @@ class QrFlowTest extends TestCase
 
     public function test_public_brand_shell_uses_the_real_logo_footer_and_production_domain(): void
     {
-        $this->assertSame('https://qr.gfyservicios.cl', config('app.url'));
+        $this->assertSame('https://app.gfyservicios.cl', config('app.url'));
 
         $this->get(route('login'))
             ->assertOk()
