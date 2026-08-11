@@ -172,6 +172,8 @@ class QrFlowTest extends TestCase
             ->assertDontSee('GF<span', false)
             ->assertSee('Todos los derechos reservados')
             ->assertSee('gfyservicios.cl', false)
+            ->assertSee('/images/whatsapp-color-svgrepo-com.svg', false)
+            ->assertSee('https://wa.me/56956192168?text=Hola%2C%20tengo%20dudas%20respecto%20al%20Equipo.', false)
             ->assertSee('https://www.area3.cl/', false);
     }
 

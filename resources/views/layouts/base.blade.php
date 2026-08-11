@@ -42,31 +42,43 @@
             @yield('content')
         </main>
 
-        <footer class="border-t border-zinc-800 bg-black px-5 py-10 text-zinc-300 sm:px-8">
-            <div class="mx-auto grid max-w-6xl gap-8 md:grid-cols-[1fr_1.1fr]">
-                <div>
+        @php
+            $whatsappUrl = 'https://wa.me/56956192168?text=' . rawurlencode('Hola, tengo dudas respecto al Equipo.');
+        @endphp
+
+        <footer class="border-t border-zinc-800 bg-black px-6 py-10 text-zinc-300 sm:px-8 md:py-12">
+            <div class="mx-auto grid max-w-5xl justify-items-center gap-9 text-center md:grid-cols-[0.85fr_1fr_1.05fr] md:items-center md:gap-10 md:text-left lg:gap-12">
+                <div class="flex w-full justify-center">
                     <!-- <p class="title-font text-xl font-bold text-white">GF7 Ingeniería &amp; Servicios</p> -->
                     <!-- <p class="mt-2 font-semibold text-amber-400">Despachos a todo Chile</p> -->
-                    <a href="https://app.gfyservicios.cl/consulta/qr" target="_blank" rel="noopener noreferrer" class="mt-3 inline-flex text-sm font-semibold text-white hover:text-amber-400">Consultar QR</a>
+                    <a href="https://app.gfyservicios.cl/consulta/qr" target="_blank" rel="noopener noreferrer" class="inline-flex min-w-[11.25rem] items-center justify-center rounded-full border border-amber-300 bg-amber-400 px-6 py-3.5 text-base font-bold text-black shadow-lg shadow-amber-500/20 transition hover:bg-amber-300 md:min-w-0 md:px-5 md:py-3 md:text-sm">Consultar QR</a>
                 </div>
-                <div class="grid gap-6 text-sm sm:grid-cols-2">
-                    <div>
-                        <p class="font-semibold text-white">Atención postventa</p>
-                        <p class="mt-2">Lunes a viernes: 09:00 a 18:00</p>
-                        <p>Sábados: 09:00 a 14:00</p>
-                    </div>
-                    <div class="space-y-1">
-                        <p><span class="font-semibold text-white">Móvil:</span> <a href="tel:+56956192168" class="text-amber-400 hover:text-amber-300">+56 9 5619 2168</a></p>
+                <a href="{{ $whatsappUrl }}" target="_blank" rel="noopener noreferrer" aria-label="Abrir WhatsApp para consultar dudas sobre el equipo" class="group flex max-w-[20rem] items-center justify-center gap-3 text-white transition hover:text-emerald-300 md:mx-auto md:max-w-[16rem]">
+                    <img src="{{ asset('images/whatsapp-color-svgrepo-com.svg') }}" alt="" aria-hidden="true" class="h-12 w-12 shrink-0 transition duration-200 group-hover:scale-105 sm:h-14 sm:w-14 md:h-12 md:w-12 lg:h-[3.15rem] lg:w-[3.15rem]">
+                    <span class="title-font max-w-[13rem] text-left text-xl font-normal leading-tight md:max-w-[11.5rem] md:text-[1.15rem] lg:text-[1.25rem]">
+                        Hola, tengo dudas respecto al <strong class="font-semibold">Equipo.</strong>
+                    </span>
+                </a>
+                <div class="max-w-[22rem] text-sm leading-relaxed md:justify-self-center">
+                    <p class="font-semibold text-white">Atención postventa</p>
+                    <p class="mt-2">Lunes a viernes: 09:00 a 18:00</p>
+                    <p>Sábados: 09:00 a 14:00</p>
+                    <div class="mt-3 space-y-1 text-zinc-400">
                         <p><span class="font-semibold text-white">Correo:</span> <a href="mailto:contacto@gfyservicios.cl" class="text-amber-400 hover:text-amber-300">contacto@gfyservicios.cl</a></p>
                         <p><span class="font-semibold text-white">Ubicación:</span> Achao 5645, Antofagasta</p>
                     </div>
                 </div>
             </div>
-            <p class="mx-auto mt-8 max-w-6xl border-t border-zinc-800 pt-5 text-center text-xs text-zinc-500">
-                © 2026 Todos los derechos reservados para
-                <a href="https://www.gfyservicios.cl" target="_blank" rel="noopener noreferrer" class="text-zinc-300 hover:text-amber-400">gfyservicios.cl</a>
-                · QRFY hecho con amor por
-                <a href="https://www.area3.cl/" target="_blank" rel="noopener noreferrer" class="text-zinc-300 hover:text-amber-400">Area3.cl</a> 💚
+            <p class="mx-auto mt-9 max-w-5xl border-t border-zinc-800 px-2 pt-5 text-center text-xs leading-relaxed text-zinc-500">
+                <span class="block sm:inline">
+                    <span class="block sm:inline">© 2026 Todos los derechos reservados para</span>
+                    <a href="https://www.gfyservicios.cl" target="_blank" rel="noopener noreferrer" class="block text-zinc-300 hover:text-amber-400 sm:inline">gfyservicios.cl</a>
+                </span>
+                <span class="hidden sm:inline"> · </span>
+                <span class="block sm:inline">
+                    QRFY hecho con amor por
+                    <a href="https://www.area3.cl/" target="_blank" rel="noopener noreferrer" class="text-zinc-300 hover:text-amber-400">Area3.cl</a> 💚
+                </span>
             </p>
         </footer>
     </div>

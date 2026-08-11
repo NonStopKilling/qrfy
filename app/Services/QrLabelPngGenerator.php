@@ -13,9 +13,29 @@ class QrLabelPngGenerator
 
     private const CONTENT_MARGIN = 30;
 
-    private const TEXT_SIZE = 48;
+    private const HEADER_HEIGHT = 250;
 
-    private const TEXT_LINE_HEIGHT = 58;
+    private const DIVIDER_HEIGHT = 18;
+
+    private const HEADER_PADDING = 48;
+
+    private const QR_AREA = 1610;
+
+    private const QR_TOP = 270;
+
+    private const HEADER_TEXT_SIZE = 60;
+
+    private const HEADER_PHONE_TEXT_SIZE = 72;
+
+    private const TEXT_SIZE = 72;
+
+    private const HEADER_TEXT_LINE_HEIGHT = 68;
+
+    private const TEXT_LINE_HEIGHT = 76;
+
+    private const TEXT_START_Y = 1870;
+
+    private const HEADER_TEXT_Y = 116;
 
     public function __construct(private readonly QrCodeSvgGenerator $qrGenerator) {}
 
@@ -25,13 +45,6 @@ class QrLabelPngGenerator
             throw new RuntimeException('La extensión GD es necesaria para generar la etiqueta de impresión.');
         }
 
-        $regularFont = $this->font(false);
-        $boldFont = $this->font(true);
-        $useBitmapFallback = $this->usingBitmapFallback($regularFont, $boldFont);
-        $textSize = $useBitmapFallback ? 84 : self::TEXT_SIZE;
-        $textLineHeight = $useBitmapFallback ? 96 : self::TEXT_LINE_HEIGHT;
-        $textStartY = $useBitmapFallback ? 1880 : 2060;
-
         $image = imagecreatetruecolor(self::WIDTH, self::HEIGHT);
         imageresolution($image, 300, 300);
 
@@ -40,20 +53,19 @@ class QrLabelPngGenerator
         $ink = imagecolorallocate($image, 17, 17, 17);
         $yellow = imagecolorallocate($image, 250, 177, 24);
         imagefill($image, 0, 0, $white);
-        imagefilledrectangle($image, 0, 0, self::WIDTH - 1, 250, $black);
-        imagefilledrectangle($image, 0, 250, self::WIDTH - 1, 268, $yellow);
+        imagefilledrectangle($image, 0, 0, self::WIDTH - 1, self::HEADER_HEIGHT - 1, $black);
+        imagefilledrectangle($image, 0, self::HEADER_HEIGHT, self::WIDTH - 1, self::HEADER_HEIGHT + self::DIVIDER_HEIGHT - 1, $yellow);
 
-        $this->drawLogo($image);
+        $this->drawHeader($image, $white);
         $contentWidth = self::WIDTH - (self::CONTENT_MARGIN * 2);
-        $qrArea = $useBitmapFallback ? 1520 : $contentWidth;
-        $qrLeft = self::CONTENT_MARGIN + intdiv($contentWidth - $qrArea, 2);
-        $this->drawQr($image, $publicUrl, $qrLeft, 268, $qrArea);
+        $qrLeft = intdiv(self::WIDTH - self::QR_AREA, 2);
+        $this->drawQr($image, $publicUrl, $qrLeft, self::QR_TOP, self::QR_AREA);
 
-        $y = $this->wrappedText($image, $asset->name, self::CONTENT_MARGIN, $textStartY, $textSize, $ink, $boldFont, $contentWidth, $textLineHeight);
-        $y = $this->wrappedText($image, 'Serie: '.$asset->serial_number, self::CONTENT_MARGIN, $y + 4, $textSize, $ink, $regularFont, $contentWidth, $textLineHeight);
-        $y = $this->wrappedText($image, 'Codigo: '.$asset->qr_code, self::CONTENT_MARGIN, $y + 4, $textSize, $ink, $boldFont, $contentWidth, $textLineHeight);
-        $y = $this->wrappedText($image, 'Si no puede escanear: '.$this->displayUrl($consultUrl), self::CONTENT_MARGIN, $y + 8, $textSize, $ink, $regularFont, $contentWidth, $textLineHeight);
-        $this->wrappedText($image, 'Ingrese el codigo '.$asset->qr_code, self::CONTENT_MARGIN, $y + 4, $textSize, $ink, $regularFont, $contentWidth, $textLineHeight);
+        $y = $this->wrappedText($image, $this->labelText($asset->name), self::CONTENT_MARGIN, self::TEXT_START_Y, self::TEXT_SIZE, $ink, $contentWidth, self::TEXT_LINE_HEIGHT);
+        $y = $this->wrappedText($image, $this->labelText($asset->serial_number), self::CONTENT_MARGIN, $y + 4, self::TEXT_SIZE, $ink, $contentWidth, self::TEXT_LINE_HEIGHT);
+        $y = $this->wrappedText($image, $this->labelText('Codigo: '.$asset->qr_code), self::CONTENT_MARGIN, $y + 4, self::TEXT_SIZE, $ink, $contentWidth, self::TEXT_LINE_HEIGHT);
+        $y = $this->wrappedText($image, $this->labelText('Si no puede escanear:'), self::CONTENT_MARGIN, $y + 8, self::TEXT_SIZE, $ink, $contentWidth, self::TEXT_LINE_HEIGHT);
+        $this->wrappedText($image, $this->displayConsultUrl($consultUrl), self::CONTENT_MARGIN, $y + 4, self::TEXT_SIZE, $ink, $contentWidth, self::TEXT_LINE_HEIGHT);
 
         ob_start();
         imagepng($image, null, 9);
@@ -89,6 +101,17 @@ class QrLabelPngGenerator
         }
     }
 
+    private function drawHeader(\GdImage $image, int $white): void
+    {
+        $this->text($image, 'EMERGENCIAS, ESCANEAR QR', self::HEADER_PADDING, self::HEADER_TEXT_Y, self::HEADER_TEXT_SIZE, $white);
+        $phonePrefix = 'O LLAMAR AL ';
+        $phoneY = self::HEADER_TEXT_Y + self::HEADER_TEXT_LINE_HEIGHT;
+        $this->text($image, $phonePrefix, self::HEADER_PADDING, $phoneY, self::HEADER_TEXT_SIZE, $white);
+        $this->text($image, '+56 9 5619 2168', self::HEADER_PADDING + $this->textWidth($phonePrefix, self::HEADER_TEXT_SIZE), $phoneY, self::HEADER_PHONE_TEXT_SIZE, $white);
+
+        $this->drawLogo($image);
+    }
+
     private function drawLogo(\GdImage $image): void
     {
         $path = public_path('images/gfyservicios-nuevo-logo.png');
@@ -101,9 +124,9 @@ class QrLabelPngGenerator
         $sourceHeight = imagesy($logo);
         $targetHeight = 194;
         $targetWidth = (int) round($sourceWidth * ($targetHeight / $sourceHeight));
-        $targetWidth = min(1420, $targetWidth);
-        $left = intdiv(self::WIDTH - $targetWidth, 2);
-        imagecopyresampled($image, $logo, $left, 24, 0, 0, $targetWidth, $targetHeight, $sourceWidth, $sourceHeight);
+        $targetWidth = min(590, $targetWidth);
+        $left = self::WIDTH - self::HEADER_PADDING - $targetWidth;
+        imagecopyresampled($image, $logo, $left, 26, 0, 0, $targetWidth, $targetHeight, $sourceWidth, $sourceHeight);
         imagedestroy($logo);
     }
 
@@ -114,7 +137,6 @@ class QrLabelPngGenerator
         int $y,
         int $size,
         int $color,
-        ?string $font,
         int $maxWidth,
         int $lineHeight,
     ): int {
@@ -122,7 +144,7 @@ class QrLabelPngGenerator
         $line = '';
         foreach (preg_split('/\s+/', trim($text)) ?: [] as $word) {
             $candidate = $line === '' ? $word : $line.' '.$word;
-            if ($this->textWidth($candidate, $size, $font) <= $maxWidth) {
+            if ($this->textWidth($candidate, $size) <= $maxWidth) {
                 $line = $candidate;
 
                 continue;
@@ -137,24 +159,17 @@ class QrLabelPngGenerator
         }
 
         foreach ($lines as $index => $value) {
-            $lineWidth = $this->textWidth($value, $size, $font);
+            $lineWidth = $this->textWidth($value, $size);
             $lineX = $x + intdiv(max(0, $maxWidth - $lineWidth), 2);
-            $this->text($image, $value, $lineX, $y + ($index * $lineHeight), $size, $color, $font);
+            $this->text($image, $value, $lineX, $y + ($index * $lineHeight), $size, $color);
         }
 
         return $y + (max(1, count($lines)) * $lineHeight);
     }
 
-    private function text(\GdImage $image, string $text, int $x, int $y, int $size, int $color, ?string $font): void
+    private function text(\GdImage $image, string $text, int $x, int $y, int $size, int $color): void
     {
-        if ($font !== null && function_exists('imagettftext')) {
-            imagettftext($image, $size, 0, $x, $y, $color, $font, $text);
-
-            return;
-        }
-
-        // Fallback when TTF fonts are not available in production.
-        // Draw a bitmap string and scale it up to approximate requested size.
+        // Production labels intentionally use GD's built-in bitmap font.
         $bitmapFont = 5;
         $scale = $this->bitmapScale($size);
         $sourceWidth = max(1, imagefontwidth($bitmapFont) * strlen($text));
@@ -176,15 +191,8 @@ class QrLabelPngGenerator
         imagedestroy($buffer);
     }
 
-    private function textWidth(string $text, int $size, ?string $font): int
+    private function textWidth(string $text, int $size): int
     {
-        if ($font !== null && function_exists('imagettfbbox')) {
-            $box = imagettfbbox($size, 0, $font, $text);
-
-            return $box === false ? PHP_INT_MAX : abs($box[2] - $box[0]);
-        }
-
-        // Approximate width for built-in bitmap fonts.
         return imagefontwidth(5) * strlen($text) * $this->bitmapScale($size);
     }
 
@@ -194,41 +202,42 @@ class QrLabelPngGenerator
         return max(1, (int) round($size / 15));
     }
 
-    private function usingBitmapFallback(?string $regularFont, ?string $boldFont): bool
-    {
-        return ! function_exists('imagettftext')
-            || ! function_exists('imagettfbbox')
-            || $regularFont === null
-            || $boldFont === null;
-    }
-
     private function displayUrl(string $url): string
     {
         return (string) preg_replace('~^https?://~i', '', rtrim($url, '/'));
     }
 
-    private function font(bool $bold): ?string
+    private function displayConsultUrl(string $url): string
     {
-        $candidates = $bold
-            ? [
-                'C:\\Windows\\Fonts\\arialbd.ttf',
-                '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-                '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',
-                '/usr/local/share/fonts/DejaVuSans-Bold.ttf',
-            ]
-            : [
-                'C:\\Windows\\Fonts\\arial.ttf',
-                '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-                '/usr/share/fonts/dejavu/DejaVuSans.ttf',
-                '/usr/local/share/fonts/DejaVuSans.ttf',
-            ];
+        return $this->labelText($this->displayUrl($url));
+    }
 
-        foreach ($candidates as $candidate) {
-            if (is_file($candidate)) {
-                return $candidate;
+    private function labelText(string $text): string
+    {
+        $text = trim((string) preg_replace('/\s+/', ' ', $text));
+        $text = strtr($text, [
+            'Á' => 'A',
+            'É' => 'E',
+            'Í' => 'I',
+            'Ó' => 'O',
+            'Ú' => 'U',
+            'Ü' => 'U',
+            'Ñ' => 'N',
+            'á' => 'a',
+            'é' => 'e',
+            'í' => 'i',
+            'ó' => 'o',
+            'ú' => 'u',
+            'ü' => 'u',
+            'ñ' => 'n',
+        ]);
+        if (function_exists('iconv')) {
+            $ascii = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
+            if (is_string($ascii) && $ascii !== '') {
+                $text = $ascii;
             }
         }
 
-        return null;
+        return strtoupper($text);
     }
 }
